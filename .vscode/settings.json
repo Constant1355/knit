@@ -62,6 +62,7 @@
         "bitset": "cpp",
         "complex": "cpp",
         "numeric": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "unordered_set": "cpp"
     }
 }

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package stm32;
+
+message SPIMessage {
+    string name = 1;
+    double ts = 2;
+    uint32 tick = 3;
+    uint32 length = 4;
+    bytes load = 5;
+}

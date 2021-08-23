@@ -5,6 +5,7 @@ add_definitions(-std=c++17)
 add_definitions(-O3)
 add_definitions(-g)
 
+add_subdirectory(pb)
 add_subdirectory(dump)
 add_subdirectory(websocket)
 

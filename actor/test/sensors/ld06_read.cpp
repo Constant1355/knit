@@ -10,7 +10,7 @@ int main()
     SPIParmas spi_params;
     spi_params.spi_bytes = 400;
     spi_params.spi_clock_hz = 3000000;
-    spi_params.spi_dev_name = "/dev/spidev0.1";
+    spi_params.spi_dev_name = "/dev/spidev0.0";
     std::thread spi_loop_th, cloud_loop_th;
 
     try

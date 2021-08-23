@@ -9,6 +9,9 @@ add_definitions(-g)
 add_executable(dump dump.cpp)
 target_link_libraries(dump stm32_source_actor dump_sink_actor)
 
+add_executable(ws_server ws_server.cpp)
+target_link_libraries(ws_server stm32_source_actor websocket_sink_actor)
+
 add_executable(creat_db creat_db.cpp)
 target_link_libraries(creat_db dump_sink_actor)
 

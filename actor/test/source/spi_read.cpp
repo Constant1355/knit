@@ -28,7 +28,7 @@ int main()
     SPIParmas spi_params;
     spi_params.spi_bytes = 400;
     spi_params.spi_clock_hz = 2000000;
-    spi_params.spi_dev_name = "/dev/spidev0.1";
+    spi_params.spi_dev_name = "/dev/spidev0.0";
 
     SPI spi(spi_params);
     spi_asychrono_loop(spi);
