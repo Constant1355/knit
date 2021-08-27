@@ -3,6 +3,8 @@
 
 using namespace knit::actor::source::stm32;
 
+bool terminate = false;
+
 void spi_asychrono_loop(SPI &spi)
 {
     std::vector<SPI::MarkedTube> tubes;
@@ -39,6 +41,29 @@ void spi_asychrono_loop(SPI &spi)
     }
 }
 
+void spi_command_loop(SPI &spi)
+{
+    while (not terminate)
+    {
+        SPICommandPtr cmd_ptr = std::make_shared<SPICommand>();
+        cmd_ptr->action = 1;
+        cmd_ptr->params.resize(4);
+        *reinterpret_cast<uint32_t *>(cmd_ptr->params.data()) = 150;
+        auto n = std::chrono::steady_clock::now();
+        auto res = spi.command(cmd_ptr, 1000);
+        auto elapse = std::chrono::steady_clock::now() - n;
+        std::cout << "delay: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapse).count() << std::endl;
+        if (res)
+        {
+            std::cout << "get response: " << res->size() << std::endl;
+        }
+        else
+        {
+            std::cout << "no response: " << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
 int main()
 {
     SPIParmas spi_params;
@@ -47,7 +72,10 @@ int main()
     spi_params.spi_dev_name = "/dev/spidev0.0";
 
     SPI spi(spi_params);
+    auto command_th = std::thread(&spi_command_loop, std::ref(spi));
     spi_asychrono_loop(spi);
+    terminate = true;
+    command_th.join();
 
     return 0;
 }

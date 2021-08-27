@@ -78,7 +78,7 @@ namespace knit
                     std::make_pair(SensorName::E108, 0x07),
                     std::make_pair(SensorName::Battery_VC, 0x08),
                     std::make_pair(SensorName::Heds, 0x09),
-
+                    std::make_pair(SensorName::CommandResponse, 0x10),
                 };
 
                 const uint8_t SPIMessageHead = 0xee;
@@ -124,6 +124,9 @@ namespace knit
                     case SensorName::Heds:
                         os << "Heds";
                         break;
+                    case SensorName::CommandResponse:
+                        os << "CommandResponse";
+                        break;
 
                     default:
                         os << "UNKNOWN";
@@ -140,7 +143,7 @@ namespace knit
 
                 SPI::SPI(const SPIParmas &params)
                     : params_(params),
-                      spi_file_(-1),
+                      spi_file_(-1), cmd_seq_(0),
                       single_load_length_(params_.spi_bytes - SPIMessageHeadLength)
                 {
                     init_();
@@ -152,140 +155,66 @@ namespace knit
                     {
                         close(spi_file_);
                     }
+                    spi_file_ = -1;
+                    if (rx_loop_th_.joinable())
+                    {
+                        rx_loop_th_.join();
+                    }
                 }
 
                 void SPI::send(std::vector<MarkedTube> &out)
                 {
-                    SPIMessagePtr msg(new SPIMessage());
-                    while (true)
+                    auto msg = rx_buffer_.get();
+                    auto res_marker = SensorNamesMarkedBit.find(msg->name);
+                    if (res_marker == SensorNamesMarkedBit.end())
                     {
-                        read_write_(params_.spi_bytes);
-                        auto header_ptr = reinterpret_cast<SPIHeader *>(rx_.data());
-                        if (header_ptr->magic_head != SPIMessageHead)
-                        {
-                            // need to sychronize data
-                            int idx = 0;
-                            for (; idx < params_.spi_bytes; ++idx)
-                            {
-                                if (rx_[idx] == SPIMessageHead)
-                                {
-                                    read_write_(idx);
-                                    break;
-                                }
-                            }
-                            if (idx == params_.spi_bytes)
-                            {
-                                // throw Exception(ExceptionType::RUNTIME, "spi message magic_head error");
-                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                            }
-                            std::cout << "sychronize magic_head at " << idx << std::endl;
-                            continue;
-                        }
-                        if (header_ptr->valid != 1)
-                        {
-                            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                            std::this_thread::yield();
-                            continue;
-                        }
-                        // std::cout << "begin crc" << std::endl;
-                        uint8_t crc_calculated = 0;
-                        for (int idx = 3; idx < params_.spi_bytes; ++idx)
-                        {
-                            crc_calculated = CrcTable[(crc_calculated ^ rx_[idx]) & 0xff];
-                        }
-                        if (header_ptr->crc != crc_calculated)
-                        {
-                            std::cout << "crc error" << std::endl;
-                            continue;
-                        }
-                        if (header_ptr->offset == 0)
-                        {
-                            msg->reset();
-                        }
-
-                        switch (header_ptr->sensor_name)
-                        {
-                        case 0x01:
-                            msg->name = SensorName::LD06;
-                            break;
-                        case 0x02:
-                            msg->name = SensorName::YESENSE;
-                            break;
-                        case 0x03:
-                            msg->name = SensorName::MPU9250;
-                            break;
-                        case 0x04:
-                            msg->name = SensorName::DS3231;
-                            break;
-                        case 0x05:
-                            msg->name = SensorName::RM3100;
-                            break;
-                        case 0x06:
-                            msg->name = SensorName::MPU9250_MAG;
-                            break;
-                        case 0x07:
-                            msg->name = SensorName::E108;
-                            break;
-                        case 0x08:
-                            msg->name = SensorName::Battery_VC;
-                            break;
-                        case 0x09:
-                            msg->name = SensorName::Heds;
-                            break;
-                        default:
-                            msg->name = SensorName::UNKNOWN;
-                            std::cout << "skip UNKNOWN SensorName" << std::endl;
-                            // continue;
-                            throw Exception(ExceptionType::RUNTIME,
-                                            "spi message sensor name error: " + std::to_string(rx_[2]));
-                        }
-
-                        auto load_begin = rx_.begin() + SPIMessageHeadLength;
-
-                        if (header_ptr->length - header_ptr->offset > single_load_length_)
-                        {
-                            std::copy(load_begin, rx_.end(), std::back_inserter(msg->load));
-                        }
-                        else
-                        {
-                            auto load_end = load_begin + header_ptr->length - header_ptr->offset;
-                            std::copy(load_begin, load_end, std::back_inserter(msg->load));
-                        }
-                        auto load_length = msg->load.size();
-                        if (load_length > header_ptr->length)
-                        {
-                            std::cout << "load_length: " << load_length << "; " << header_ptr->length << std::endl;
-                            throw Exception(ExceptionType::RUNTIME, "spi message overflow error ");
-                        }
-                        else if (load_length < header_ptr->length)
-                        {
-                            continue;
-                        }
-
-                        msg->length = header_ptr->length;
-                        msg->tick = header_ptr->tick;
-                        // std::cout << "final: " << msg->length << " should " << msg->load.size() << " tick: " << msg->tick << std::endl;
-
-                        auto res_marker = SensorNamesMarkedBit.find(msg->name);
-                        if (res_marker == SensorNamesMarkedBit.end())
-                        {
-                            throw Exception(ExceptionType::RUNTIME,
-                                            "spi message sensor name marker error ");
-                        }
-                        for (auto &markerd_tube : out)
-                        {
-                            if (markerd_tube.first.test(res_marker->second))
-                            {
-                                markerd_tube.second->set_value(msg);
-                            }
-                        }
-                        break;
+                        throw Exception(ExceptionType::RUNTIME,
+                                        "spi message sensor name marker error ");
                     }
+                    for (auto &markerd_tube : out)
+                    {
+                        if (markerd_tube.first.test(res_marker->second))
+                        {
+                            markerd_tube.second->set_value(msg);
+                        }
+                    }
+                }
+
+                std::optional<std::vector<uint8_t>> SPI::command(const SPICommandPtr &cmd, const uint32_t &timeout_milliseconds)
+                {
+                    std::pair<std::map<uint32_t, std::promise<std::vector<uint8_t>>>::iterator, bool>
+                        it;
+                    {
+                        std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
+                        it = cmd_response_.emplace(std::piecewise_construct,
+                                                   std::forward_as_tuple(cmd_seq_),
+                                                   std::forward_as_tuple(std::promise<std::vector<uint8_t>>()));
+                        if (not it.second)
+                        {
+                            return std::nullopt;
+                        }
+                        tx_buffer_.push({cmd_seq_, cmd});
+                        ++cmd_seq_;
+                    }
+
+                    auto res_f = it.first->second.get_future();
+                    auto res = res_f.wait_for(std::chrono::milliseconds(timeout_milliseconds));
+
+                    std::vector<uint8_t> response_data;
+                    std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
+                    if (res != std::future_status::ready)
+                    {
+                        cmd_response_.erase(it.first);
+                        return std::nullopt;
+                    }
+                    response_data = res_f.get();
+                    cmd_response_.erase(it.first);
+                    return response_data;
                 }
 
                 void SPI::emplace_tube(const std::vector<SensorName> &sensors, std::vector<MarkedTube> &tubes) const
                 {
-                    std::bitset<10> marker;
+                    std::bitset<MarkerSize> marker;
                     for (const auto &s : sensors)
                     {
                         auto res = SensorNamesMarkedBit.find(s);
@@ -329,25 +258,202 @@ namespace knit
                         throw Exception(ExceptionType::INITIAL, "spi faild to set max speed: " + std::to_string(xfer_.speed_hz));
                     }
 
-                    tx_.resize(params_.spi_bytes);
-                    rx_.resize(params_.spi_bytes);
+                    tx_.resize(params_.spi_bytes, 0);
+                    rx_.resize(params_.spi_bytes, 0);
                     xfer_.tx_buf = (unsigned long)tx_.data();
                     xfer_.rx_buf = (unsigned long)rx_.data();
+
+                    rx_loop_th_ = std::thread(&SPI::read_write_loop_, this);
                 }
 
-                void SPI::read_write_(const int &len)
+                void SPI::read_write_loop_()
                 {
-                    if (spi_file_ == -1)
+                    bool sychronous = false;
+                    SPIMessagePtr msg(new SPIMessage());
+                    while (spi_file_ != -1)
                     {
-                        throw Exception(ExceptionType::RUNTIME, "spi_file_ == -1");
+                        tx_.clear();
+                        tx_.resize(params_.spi_bytes, 0);
+                        if (sychronous)
+                        {
+                            fill_tx_();
+                        }
+                        transfer_bytes_(params_.spi_bytes);
+                        if (rx_[0] != SPIMessageHead)
+                        {
+                            sychronous = false;
+                            if (not sychronous_head_())
+                            {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                std::cout << "sychronize magic_head" << std::endl;
+                                continue;
+                            }
+                        }
+                        sychronous = true;
+                        if (not parse_rx_(msg))
+                        {
+                            std::this_thread::yield();
+                            continue;
+                        }
                     }
-                    std::lock_guard<std::mutex> lg(rw_mtx_);
+                }
+
+                void SPI::fill_tx_()
+                {
+                    std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
+                    if (not tx_buffer_.empty())
+                    {
+                        auto front = tx_buffer_.front();
+                        tx_buffer_.pop();
+                        const auto &params = front.second->params;
+                        auto params_size = static_cast<uint32_t>(params.size());
+                        if (params_size > params_.spi_bytes - 14)
+                        {
+                            throw Exception(ExceptionType::RUNTIME,
+                                            "spi tx buffer overflow with load size: " +
+                                                std::to_string(params_size));
+                        }
+                        tx_[0] = SPIMessageHead;
+                        *reinterpret_cast<uint32_t *>(tx_.data() + 1) = front.second->action;
+                        *reinterpret_cast<uint32_t *>(tx_.data() + 5) = front.first;
+                        *reinterpret_cast<uint32_t *>(tx_.data() + 9) = params_size;
+
+                        std::copy(params.begin(), params.end(), tx_.begin() + 13);
+
+                        uint8_t crc_calculated = 0;
+                        for (int idx = 0; idx < params_size + 13; ++idx)
+                        {
+                            crc_calculated = CrcTable[(crc_calculated ^ tx_[idx]) & 0xff];
+                        }
+                        tx_[params_size + 13] = crc_calculated;
+                    }
+                }
+
+                bool SPI::sychronous_head_()
+                {
+                    int idx = 0;
+                    for (; idx < params_.spi_bytes; ++idx)
+                    {
+                        if (rx_[idx] == SPIMessageHead)
+                        {
+                            transfer_bytes_(1);
+                            break;
+                        }
+                    }
+                    return idx != params_.spi_bytes;
+                }
+
+                void SPI::transfer_bytes_(uint len)
+                {
                     xfer_.len = len;
                     auto status = ioctl(spi_file_, SPI_IOC_MESSAGE(1), &xfer_);
                     if (status < 0)
                     {
                         throw Exception(ExceptionType::RUNTIME, "spi IO error");
                     }
+                }
+
+                bool SPI::parse_rx_(SPIMessagePtr &msg)
+                {
+                    auto header_ptr = reinterpret_cast<SPIHeader *>(rx_.data());
+                    if (header_ptr->valid != 1)
+                    {
+                        return false;
+                    }
+
+                    uint8_t crc_calculated = 0;
+                    for (int idx = 3; idx < params_.spi_bytes; ++idx)
+                    {
+                        crc_calculated = CrcTable[(crc_calculated ^ rx_[idx]) & 0xff];
+                    }
+                    if (header_ptr->crc != crc_calculated)
+                    {
+                        std::cout << "crc error" << std::endl;
+                        return false;
+                    }
+                    if (header_ptr->offset == 0)
+                    {
+                        msg = std::make_shared<SPIMessage>();
+                    }
+
+                    switch (header_ptr->sensor_name)
+                    {
+                    case 0x01:
+                        msg->name = SensorName::LD06;
+                        break;
+                    case 0x02:
+                        msg->name = SensorName::YESENSE;
+                        break;
+                    case 0x03:
+                        msg->name = SensorName::MPU9250;
+                        break;
+                    case 0x04:
+                        msg->name = SensorName::DS3231;
+                        break;
+                    case 0x05:
+                        msg->name = SensorName::RM3100;
+                        break;
+                    case 0x06:
+                        msg->name = SensorName::MPU9250_MAG;
+                        break;
+                    case 0x07:
+                        msg->name = SensorName::E108;
+                        break;
+                    case 0x08:
+                        msg->name = SensorName::Battery_VC;
+                        break;
+                    case 0x09:
+                        msg->name = SensorName::Heds;
+                        break;
+                    case 0xf0:
+                        msg->name = SensorName::CommandResponse;
+                        break;
+                    default:
+                        msg->name = SensorName::UNKNOWN;
+                        std::cout << "skip UNKNOWN SensorName" << std::endl;
+                        throw Exception(ExceptionType::RUNTIME,
+                                        "spi message sensor name error: " + std::to_string(rx_[2]));
+                    }
+
+                    auto load_begin = rx_.begin() + SPIMessageHeadLength;
+
+                    if (header_ptr->length - header_ptr->offset > single_load_length_)
+                    {
+                        std::copy(load_begin, rx_.end(), std::back_inserter(msg->load));
+                    }
+                    else
+                    {
+                        auto load_end = load_begin + header_ptr->length - header_ptr->offset;
+                        std::copy(load_begin, load_end, std::back_inserter(msg->load));
+                    }
+                    auto load_length = msg->load.size();
+                    if (load_length > header_ptr->length)
+                    {
+                        std::cout << "load_length: " << load_length << "; " << header_ptr->length << std::endl;
+                        throw Exception(ExceptionType::RUNTIME, "spi message overflow error ");
+                    }
+                    else if (load_length < header_ptr->length)
+                    {
+                        return true;
+                    }
+
+                    msg->length = header_ptr->length;
+                    msg->tick = header_ptr->tick;
+                    // std::cout << "final: " << msg->length << " should " << msg->load.size() << " tick: " << msg->tick << std::endl;
+
+                    rx_buffer_.set_value(msg);
+                    if (msg->name == SensorName::CommandResponse and msg->load.size() >= 4)
+                    {
+                        const auto &seq = *reinterpret_cast<uint32_t *>(msg->load.data());
+
+                        std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
+                        auto res = cmd_response_.find(seq);
+                        if (res != cmd_response_.end())
+                        {
+                            res->second.set_value({msg->load.begin() + 4, msg->load.end()});
+                        }
+                    }
+                    return true;
                 }
             }
         }

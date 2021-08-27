@@ -3,9 +3,10 @@
 #include <iostream>
 #include <vector>
 #include <future>
-#include <mutex>
 #include <map>
 #include <set>
+#include <mutex>
+#include <thread>
 #include <utility>
 #include <linux/spi/spidev.h>
 #include "../../common/actor.hpp"
@@ -19,6 +20,8 @@ namespace knit
             namespace stm32
             {
 
+                constexpr int MarkerSize = 20;
+
                 enum class SensorName
                 {
                     LD06,
@@ -30,6 +33,7 @@ namespace knit
                     E108,
                     Battery_VC,
                     Heds,
+                    CommandResponse,
                     UNKNOWN
                 };
 
@@ -59,6 +63,13 @@ namespace knit
                 };
                 using SPIMessagePtr = std::shared_ptr<SPIMessage>;
 
+                struct SPICommand
+                {
+                    uint32_t action;
+                    std::vector<uint8_t> params;
+                };
+                using SPICommandPtr = std::shared_ptr<SPICommand>;
+
                 struct SPIParmas
                 {
                     std::string spi_dev_name;
@@ -66,25 +77,34 @@ namespace knit
                     int spi_clock_hz;
                 };
 
-                class SPI : public Source<SPIMessagePtr, 10>
+                class SPI : public Source<SPIMessagePtr, MarkerSize>
                 {
                 public:
                     SPI(const SPIParmas &params);
                     ~SPI();
                     virtual void send(std::vector<MarkedTube> &out) override;
+                    std::optional<std::vector<uint8_t>> command(const SPICommandPtr &cmd, const uint32_t &timeout_milliseconds = 1000);
                     void emplace_tube(const std::vector<SensorName> &sensors, std::vector<MarkedTube> &tubes) const;
 
                 private:
                     void init_();
-                    void read_write_(const int &len);
+                    void read_write_loop_();
+                    void fill_tx_();
+                    bool sychronous_head_();
+                    void transfer_bytes_(uint len);
+                    bool parse_rx_(SPIMessagePtr &msg);
 
                     SPIParmas params_;
                     int spi_file_;
+                    uint32_t cmd_seq_;
                     const uint32_t single_load_length_;
 
-                    std::mutex rw_mtx_;
-
+                    Tube<SPIMessagePtr> rx_buffer_;
+                    std::mutex tx_buffer_mtx_;
+                    std::queue<std::pair<uint32_t, SPICommandPtr>> tx_buffer_;
                     std::vector<uint8_t> tx_, rx_;
+                    std::thread rx_loop_th_;
+                    std::map<uint32_t, std::promise<std::vector<uint8_t>>> cmd_response_;
                 };
             }
         }
