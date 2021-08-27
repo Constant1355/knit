@@ -1,6 +1,6 @@
 #include "../../sensors/coordinate/rm3100.hpp"
 #include "../../sensors/coordinate/mpu9250_mag.hpp"
-#include "../../source/stm32/mutex.hpp"
+#include "../../source/stm32/demutiplexer.hpp"
 #include "../../common/exception.hpp"
 
 using namespace knit::actor::sensor::coordinate;
