@@ -1,6 +1,6 @@
 #include "../../sensors/coordinate/mpu9250.hpp"
 #include "../../sensors/coordinate/yesense.hpp"
-#include "../../source/stm32/spi.hpp"
+#include "../../source/stm32/mutex.hpp"
 #include "../../common/exception.hpp"
 
 using namespace knit::actor::sensor::coordinate;

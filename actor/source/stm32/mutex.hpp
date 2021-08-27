@@ -27,6 +27,9 @@ namespace knit
                     MPU9250_MAG,
                     DS3231,
                     RM3100,
+                    E108,
+                    Battery_VC,
+                    Heds,
                     UNKNOWN
                 };
 

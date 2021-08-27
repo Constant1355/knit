@@ -18,6 +18,12 @@ int main()
     view_params.dump_sensors.push_back(SensorName::LD06);
     view_params.dump_sensors.push_back(SensorName::MPU9250);
     view_params.dump_sensors.push_back(SensorName::YESENSE);
+    view_params.dump_sensors.push_back(SensorName::DS3231);
+    view_params.dump_sensors.push_back(SensorName::E108);
+    view_params.dump_sensors.push_back(SensorName::RM3100);
+    view_params.dump_sensors.push_back(SensorName::MPU9250_MAG);
+    view_params.dump_sensors.push_back(SensorName::Battery_VC);
+    view_params.dump_sensors.push_back(SensorName::Heds);
 
     std::vector<SPI::MarkedTube> tubes;
     spi.emplace_tube(view_params.dump_sensors, tubes);

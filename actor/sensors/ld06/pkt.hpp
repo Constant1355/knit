@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "../../source/stm32/spi.hpp"
+#include "../../source/stm32/mutex.hpp"
 #include "../../common/actor.hpp"
 
 namespace knit

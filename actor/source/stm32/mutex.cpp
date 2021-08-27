@@ -1,4 +1,4 @@
-#include "spi.hpp"
+#include "mutex.hpp"
 
 #include <vector>
 #include <map>
@@ -75,6 +75,10 @@ namespace knit
                     std::make_pair(SensorName::MPU9250_MAG, 0x06),
                     std::make_pair(SensorName::DS3231, 0x04),
                     std::make_pair(SensorName::RM3100, 0x05),
+                    std::make_pair(SensorName::E108, 0x07),
+                    std::make_pair(SensorName::Battery_VC, 0x08),
+                    std::make_pair(SensorName::Heds, 0x09),
+
                 };
 
                 const uint8_t SPIMessageHead = 0xee;
@@ -89,7 +93,7 @@ namespace knit
                     load.clear();
                 }
 
-                std::ostream &operator<<(std::ostream &os,  SensorName const &c)
+                std::ostream &operator<<(std::ostream &os, SensorName const &c)
                 {
                     switch (c)
                     {
@@ -111,6 +115,16 @@ namespace knit
                     case SensorName::RM3100:
                         os << "RM3100";
                         break;
+                    case SensorName::E108:
+                        os << "E108";
+                        break;
+                    case SensorName::Battery_VC:
+                        os << "Battery_VC";
+                        break;
+                    case SensorName::Heds:
+                        os << "Heds";
+                        break;
+
                     default:
                         os << "UNKNOWN";
                         break;
@@ -162,6 +176,7 @@ namespace knit
                             if (idx == params_.spi_bytes)
                             {
                                 // throw Exception(ExceptionType::RUNTIME, "spi message magic_head error");
+                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                             }
                             std::cout << "sychronize magic_head at " << idx << std::endl;
                             continue;
@@ -208,12 +223,21 @@ namespace knit
                         case 0x06:
                             msg->name = SensorName::MPU9250_MAG;
                             break;
+                        case 0x07:
+                            msg->name = SensorName::E108;
+                            break;
+                        case 0x08:
+                            msg->name = SensorName::Battery_VC;
+                            break;
+                        case 0x09:
+                            msg->name = SensorName::Heds;
+                            break;
                         default:
                             msg->name = SensorName::UNKNOWN;
                             std::cout << "skip UNKNOWN SensorName" << std::endl;
-                            continue;
-                            // throw Exception(ExceptionType::RUNTIME,
-                            //                 "spi message sensor name error: " + std::to_string(rx_[2]));
+                            // continue;
+                            throw Exception(ExceptionType::RUNTIME,
+                                            "spi message sensor name error: " + std::to_string(rx_[2]));
                         }
 
                         auto load_begin = rx_.begin() + SPIMessageHeadLength;

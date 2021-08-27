@@ -161,6 +161,12 @@ namespace knit
                 void View::on_message(connection_hdl hdl, server::message_ptr msg)
                 {
                     std::cout << "on message: " << msg->get_payload() << std::endl;
+                    std::lock_guard<std::mutex> lg(mtx_);
+                    auto res = cnt_table_.find(hdl);
+                    if (res != cnt_table_.end())
+                    {
+                        res->second = std::chrono::steady_clock::now();
+                    }
                 }
             }
         }

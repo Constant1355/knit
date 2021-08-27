@@ -1,4 +1,4 @@
-#include "../../source/stm32/spi.hpp"
+#include "../../source/stm32/mutex.hpp"
 #include "../../common/exception.hpp"
 
 using namespace knit::actor::source::stm32;

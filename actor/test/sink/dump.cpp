@@ -1,4 +1,4 @@
-#include "../../source/stm32/spi.hpp"
+#include "../../source/stm32/mutex.hpp"
 #include "../../sink/dump/dump.hpp"
 #include "../../common/exception.hpp"
 
@@ -18,6 +18,12 @@ int main()
     dump_params.dump_sensors.push_back(SensorName::LD06);
     dump_params.dump_sensors.push_back(SensorName::MPU9250);
     dump_params.dump_sensors.push_back(SensorName::YESENSE);
+    dump_params.dump_sensors.push_back(SensorName::DS3231);
+    dump_params.dump_sensors.push_back(SensorName::E108);
+    dump_params.dump_sensors.push_back(SensorName::RM3100);
+    dump_params.dump_sensors.push_back(SensorName::MPU9250_MAG);
+    dump_params.dump_sensors.push_back(SensorName::Battery_VC);
+    dump_params.dump_sensors.push_back(SensorName::Heds);
 
     dump_params.db = "test.db";
 
