@@ -6,7 +6,7 @@
 #include <mutex>
 
 #include "../../common/actor.hpp"
-#include "../../source/stm32/mutex.hpp"
+#include "../../source/stm32/spi.hpp"
 #include "../../common/exception.hpp"
 
 #define ASIO_STANDALONE

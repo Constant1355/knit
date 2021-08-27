@@ -5,5 +5,5 @@ add_definitions(-std=c++17)
 add_definitions(-O3)
 add_definitions(-g)
 
-add_library(${PROJECT_NAME} mutex.cpp)
+add_library(${PROJECT_NAME} spi.cpp)
 target_link_libraries(${PROJECT_NAME} pthread)

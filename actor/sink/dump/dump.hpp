@@ -2,7 +2,7 @@
 
 #include "sqlite3.h"
 #include "../../common/actor.hpp"
-#include "../../source/stm32/mutex.hpp"
+#include "../../source/stm32/spi.hpp"
 #include "../../common/exception.hpp"
 
 namespace knit

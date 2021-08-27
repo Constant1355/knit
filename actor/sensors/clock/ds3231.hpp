@@ -3,7 +3,7 @@
 #include <ctime>
 #include <list>
 #include <optional>
-#include "../../source/stm32/mutex.hpp"
+#include "../../source/stm32/spi.hpp"
 #include "../../common/actor.hpp"
 
 namespace knit

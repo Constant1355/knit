@@ -9,7 +9,7 @@
 #include <vector>
 #include <memory>
 #include <Eigen/Dense>
-#include "../../source/stm32/mutex.hpp"
+#include "../../source/stm32/spi.hpp"
 
 namespace knit
 {
