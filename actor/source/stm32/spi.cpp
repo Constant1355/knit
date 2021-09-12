@@ -77,9 +77,7 @@ namespace knit
                     std::make_pair(SensorName::RM3100, 0x05),
                     std::make_pair(SensorName::E108, 0x07),
                     std::make_pair(SensorName::Battery_VC, 0x08),
-                    std::make_pair(SensorName::Heds, 0x09),
-                    std::make_pair(SensorName::CommandResponse, 0x10),
-                };
+                    std::make_pair(SensorName::Heds, 0x09)};
 
                 const uint8_t SPIMessageHead = 0xee;
                 const int SPIMessageHeadLength = sizeof(SPIHeader);
@@ -180,36 +178,38 @@ namespace knit
                     }
                 }
 
-                std::optional<std::vector<uint8_t>> SPI::command(const SPICommandPtr &cmd, const uint32_t &timeout_milliseconds)
+                std::optional<std::vector<uint8_t>> SPI::command(
+                    const uint32_t &action,
+                    const std::vector<uint8_t> &params,
+                    const uint32_t &timeout_milliseconds)
                 {
-                    std::pair<std::map<uint32_t, std::promise<std::vector<uint8_t>>>::iterator, bool>
-                        it;
+
+                    SPICommandPtr spi_command = std::make_shared<SPICommand>();
+                    spi_command->action = action;
+                    spi_command->params = params;
+                    spi_command->sequence = cmd_seq_;
+                    spi_command->status_wait = false;
+                    ++cmd_seq_;
+
+                    std::list<SPICommandPtr>::iterator it;
                     {
-                        std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
-                        it = cmd_response_.emplace(std::piecewise_construct,
-                                                   std::forward_as_tuple(cmd_seq_),
-                                                   std::forward_as_tuple(std::promise<std::vector<uint8_t>>()));
-                        if (not it.second)
-                        {
-                            return std::nullopt;
-                        }
-                        tx_buffer_.push({cmd_seq_, cmd});
-                        ++cmd_seq_;
+                        std::lock_guard<std::mutex> lg(cmds_mtx_);
+                        it = cmds_.emplace(cmds_.end(), spi_command);
                     }
 
-                    auto res_f = it.first->second.get_future();
+                    auto res_f = spi_command->promise_response.get_future();
                     auto res = res_f.wait_for(std::chrono::milliseconds(timeout_milliseconds));
 
-                    std::vector<uint8_t> response_data;
-                    std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
-                    if (res != std::future_status::ready)
                     {
-                        cmd_response_.erase(it.first);
-                        return std::nullopt;
+                        std::lock_guard<std::mutex> lg(cmds_mtx_);
+                        cmds_.erase(it);
                     }
-                    response_data = res_f.get();
-                    cmd_response_.erase(it.first);
-                    return response_data;
+
+                    if (res == std::future_status::ready)
+                    {
+                        return res_f.get();
+                    }
+                    return std::nullopt;
                 }
 
                 void SPI::emplace_tube(const std::vector<SensorName> &sensors, std::vector<MarkedTube> &tubes) const
@@ -300,33 +300,42 @@ namespace knit
 
                 void SPI::fill_tx_()
                 {
-                    std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
-                    if (not tx_buffer_.empty())
+                    SPICommandPtr cmd = nullptr;
                     {
-                        auto front = tx_buffer_.front();
-                        tx_buffer_.pop();
-                        const auto &params = front.second->params;
-                        auto params_size = static_cast<uint32_t>(params.size());
-                        if (params_size > params_.spi_bytes - 14)
+                        std::lock_guard<std::mutex> lg(cmds_mtx_);
+                        if (cmds_.empty())
                         {
-                            throw Exception(ExceptionType::RUNTIME,
-                                            "spi tx buffer overflow with load size: " +
-                                                std::to_string(params_size));
+                            return;
                         }
-                        tx_[0] = SPIMessageHead;
-                        *reinterpret_cast<uint32_t *>(tx_.data() + 1) = front.second->action;
-                        *reinterpret_cast<uint32_t *>(tx_.data() + 5) = front.first;
-                        *reinterpret_cast<uint32_t *>(tx_.data() + 9) = params_size;
 
-                        std::copy(params.begin(), params.end(), tx_.begin() + 13);
-
-                        uint8_t crc_calculated = 0;
-                        for (int idx = 0; idx < params_size + 13; ++idx)
+                        if (cmds_.front()->status_wait)
                         {
-                            crc_calculated = CrcTable[(crc_calculated ^ tx_[idx]) & 0xff];
+                            return;
                         }
-                        tx_[params_size + 13] = crc_calculated;
+                        cmd = cmds_.front();
                     }
+
+                    const auto &params = cmd->params;
+                    auto params_size = static_cast<uint32_t>(params.size());
+                    if (params_size > params_.spi_bytes - 14)
+                    {
+                        throw Exception(ExceptionType::RUNTIME,
+                                        "spi tx buffer overflow with load size: " +
+                                            std::to_string(params_size));
+                    }
+                    tx_[0] = SPIMessageHead;
+                    *reinterpret_cast<uint32_t *>(tx_.data() + 1) = cmd->action;
+                    *reinterpret_cast<uint32_t *>(tx_.data() + 5) = cmd->sequence;
+                    *reinterpret_cast<uint32_t *>(tx_.data() + 9) = params_size;
+
+                    std::copy(params.begin(), params.end(), tx_.begin() + 13);
+
+                    uint8_t crc_calculated = 0;
+                    for (int idx = 0; idx < params_size + 13; ++idx)
+                    {
+                        crc_calculated = CrcTable[(crc_calculated ^ tx_[idx]) & 0xff];
+                    }
+                    tx_[params_size + 13] = crc_calculated;
                 }
 
                 bool SPI::sychronous_head_()
@@ -441,16 +450,18 @@ namespace knit
                     msg->tick = header_ptr->tick;
                     // std::cout << "final: " << msg->length << " should " << msg->load.size() << " tick: " << msg->tick << std::endl;
 
-                    rx_buffer_.set_value(msg);
-                    if (msg->name == SensorName::CommandResponse and msg->load.size() >= 4)
+                    if (msg->name != SensorName::CommandResponse)
+                    {
+                        rx_buffer_.set_value(msg);
+                    }
+                    else if (msg->load.size() >= 4)
                     {
                         const auto &seq = *reinterpret_cast<uint32_t *>(msg->load.data());
 
-                        std::lock_guard<std::mutex> lg(tx_buffer_mtx_);
-                        auto res = cmd_response_.find(seq);
-                        if (res != cmd_response_.end())
+                        std::lock_guard<std::mutex> lg(cmds_mtx_);
+                        if (not cmds_.empty() and cmds_.front()->sequence == seq)
                         {
-                            res->second.set_value({msg->load.begin() + 4, msg->load.end()});
+                            cmds_.front()->promise_response.set_value({msg->load.begin() + 4, msg->load.end()});
                         }
                     }
                     return true;

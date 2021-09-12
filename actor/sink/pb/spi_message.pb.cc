@@ -21,9 +21,8 @@ constexpr SPIMessage::SPIMessage(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , load_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , ts_(0)
-  , tick_(0u)
-  , length_(0u){}
+  , length_(0u)
+  , _oneof_case_{}{}
 struct SPIMessageDefaultTypeInternal {
   constexpr SPIMessageDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -42,13 +41,17 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_spi_5fmessage_2eproto::offsets
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, _internal_metadata_),
   ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
+  PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, _oneof_case_[0]),
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, name_),
-  PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, ts_),
-  PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, tick_),
+  ::PROTOBUF_NAMESPACE_ID::internal::kInvalidFieldOffsetTag,
+  ::PROTOBUF_NAMESPACE_ID::internal::kInvalidFieldOffsetTag,
+  ::PROTOBUF_NAMESPACE_ID::internal::kInvalidFieldOffsetTag,
+  ::PROTOBUF_NAMESPACE_ID::internal::kInvalidFieldOffsetTag,
   PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, length_),
   PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, load_),
+  PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, ts_timeout_),
+  PROTOBUF_FIELD_OFFSET(::stm32::SPIMessage, tick_cmd_),
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::stm32::SPIMessage)},
@@ -59,13 +62,15 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 };
 
 const char descriptor_table_protodef_spi_5fmessage_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\021spi_message.proto\022\005stm32\"R\n\nSPIMessage"
-  "\022\014\n\004name\030\001 \001(\t\022\n\n\002ts\030\002 \001(\001\022\014\n\004tick\030\003 \001(\r"
-  "\022\016\n\006length\030\004 \001(\r\022\014\n\004load\030\005 \001(\014b\006proto3"
+  "\n\021spi_message.proto\022\005stm32\"\226\001\n\nSPIMessag"
+  "e\022\014\n\004name\030\001 \001(\t\022\014\n\002ts\030\002 \001(\001H\000\022\021\n\007timeout"
+  "\030\007 \001(\001H\000\022\016\n\004tick\030\003 \001(\rH\001\022\021\n\007command\030\006 \001("
+  "\rH\001\022\016\n\006length\030\004 \001(\r\022\014\n\004load\030\005 \001(\014B\014\n\nts_"
+  "timeoutB\n\n\010tick_cmdb\006proto3"
   ;
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_spi_5fmessage_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_spi_5fmessage_2eproto = {
-  false, false, 118, descriptor_table_protodef_spi_5fmessage_2eproto, "spi_message.proto", 
+  false, false, 187, descriptor_table_protodef_spi_5fmessage_2eproto, "spi_message.proto", 
   &descriptor_table_spi_5fmessage_2eproto_once, nullptr, 0, 1,
   schemas, file_default_instances, TableStruct_spi_5fmessage_2eproto::offsets,
   file_level_metadata_spi_5fmessage_2eproto, file_level_enum_descriptors_spi_5fmessage_2eproto, file_level_service_descriptors_spi_5fmessage_2eproto,
@@ -106,19 +111,44 @@ SPIMessage::SPIMessage(const SPIMessage& from)
     load_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_load(), 
       GetArenaForAllocation());
   }
-  ::memcpy(&ts_, &from.ts_,
-    static_cast<size_t>(reinterpret_cast<char*>(&length_) -
-    reinterpret_cast<char*>(&ts_)) + sizeof(length_));
+  length_ = from.length_;
+  clear_has_ts_timeout();
+  switch (from.ts_timeout_case()) {
+    case kTs: {
+      _internal_set_ts(from._internal_ts());
+      break;
+    }
+    case kTimeout: {
+      _internal_set_timeout(from._internal_timeout());
+      break;
+    }
+    case TS_TIMEOUT_NOT_SET: {
+      break;
+    }
+  }
+  clear_has_tick_cmd();
+  switch (from.tick_cmd_case()) {
+    case kTick: {
+      _internal_set_tick(from._internal_tick());
+      break;
+    }
+    case kCommand: {
+      _internal_set_command(from._internal_command());
+      break;
+    }
+    case TICK_CMD_NOT_SET: {
+      break;
+    }
+  }
   // @@protoc_insertion_point(copy_constructor:stm32.SPIMessage)
 }
 
 void SPIMessage::SharedCtor() {
 name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 load_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-    reinterpret_cast<char*>(&ts_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&length_) -
-    reinterpret_cast<char*>(&ts_)) + sizeof(length_));
+length_ = 0u;
+clear_has_ts_timeout();
+clear_has_tick_cmd();
 }
 
 SPIMessage::~SPIMessage() {
@@ -132,6 +162,12 @@ inline void SPIMessage::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   load_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (has_ts_timeout()) {
+    clear_ts_timeout();
+  }
+  if (has_tick_cmd()) {
+    clear_tick_cmd();
+  }
 }
 
 void SPIMessage::ArenaDtor(void* object) {
@@ -144,6 +180,43 @@ void SPIMessage::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
 
+void SPIMessage::clear_ts_timeout() {
+// @@protoc_insertion_point(one_of_clear_start:stm32.SPIMessage)
+  switch (ts_timeout_case()) {
+    case kTs: {
+      // No need to clear
+      break;
+    }
+    case kTimeout: {
+      // No need to clear
+      break;
+    }
+    case TS_TIMEOUT_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = TS_TIMEOUT_NOT_SET;
+}
+
+void SPIMessage::clear_tick_cmd() {
+// @@protoc_insertion_point(one_of_clear_start:stm32.SPIMessage)
+  switch (tick_cmd_case()) {
+    case kTick: {
+      // No need to clear
+      break;
+    }
+    case kCommand: {
+      // No need to clear
+      break;
+    }
+    case TICK_CMD_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[1] = TICK_CMD_NOT_SET;
+}
+
+
 void SPIMessage::Clear() {
 // @@protoc_insertion_point(message_clear_start:stm32.SPIMessage)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -152,9 +225,9 @@ void SPIMessage::Clear() {
 
   name_.ClearToEmpty();
   load_.ClearToEmpty();
-  ::memset(&ts_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&length_) -
-      reinterpret_cast<char*>(&ts_)) + sizeof(length_));
+  length_ = 0u;
+  clear_ts_timeout();
+  clear_tick_cmd();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -176,14 +249,14 @@ const char* SPIMessage::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID:
       // double ts = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 17)) {
-          ts_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
+          _internal_set_ts(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
           ptr += sizeof(double);
         } else goto handle_unusual;
         continue;
       // uint32 tick = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
-          tick_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          _internal_set_tick(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -200,6 +273,20 @@ const char* SPIMessage::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID:
           auto str = _internal_mutable_load();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 command = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
+          _internal_set_command(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // double timeout = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 57)) {
+          _internal_set_timeout(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
+          ptr += sizeof(double);
         } else goto handle_unusual;
         continue;
       default: {
@@ -242,13 +329,13 @@ failure:
   }
 
   // double ts = 2;
-  if (!(this->_internal_ts() <= 0 && this->_internal_ts() >= 0)) {
+  if (_internal_has_ts()) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(2, this->_internal_ts(), target);
   }
 
   // uint32 tick = 3;
-  if (this->_internal_tick() != 0) {
+  if (_internal_has_tick()) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_tick(), target);
   }
@@ -263,6 +350,18 @@ failure:
   if (!this->_internal_load().empty()) {
     target = stream->WriteBytesMaybeAliased(
         5, this->_internal_load(), target);
+  }
+
+  // uint32 command = 6;
+  if (_internal_has_command()) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(6, this->_internal_command(), target);
+  }
+
+  // double timeout = 7;
+  if (_internal_has_timeout()) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(7, this->_internal_timeout(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -295,18 +394,6 @@ size_t SPIMessage::ByteSizeLong() const {
         this->_internal_load());
   }
 
-  // double ts = 2;
-  if (!(this->_internal_ts() <= 0 && this->_internal_ts() >= 0)) {
-    total_size += 1 + 8;
-  }
-
-  // uint32 tick = 3;
-  if (this->_internal_tick() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_tick());
-  }
-
   // uint32 length = 4;
   if (this->_internal_length() != 0) {
     total_size += 1 +
@@ -314,6 +401,40 @@ size_t SPIMessage::ByteSizeLong() const {
         this->_internal_length());
   }
 
+  switch (ts_timeout_case()) {
+    // double ts = 2;
+    case kTs: {
+      total_size += 1 + 8;
+      break;
+    }
+    // double timeout = 7;
+    case kTimeout: {
+      total_size += 1 + 8;
+      break;
+    }
+    case TS_TIMEOUT_NOT_SET: {
+      break;
+    }
+  }
+  switch (tick_cmd_case()) {
+    // uint32 tick = 3;
+    case kTick: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+          this->_internal_tick());
+      break;
+    }
+    // uint32 command = 6;
+    case kCommand: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+          this->_internal_command());
+      break;
+    }
+    case TICK_CMD_NOT_SET: {
+      break;
+    }
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -348,14 +469,34 @@ void SPIMessage::MergeFrom(const SPIMessage& from) {
   if (!from._internal_load().empty()) {
     _internal_set_load(from._internal_load());
   }
-  if (!(from._internal_ts() <= 0 && from._internal_ts() >= 0)) {
-    _internal_set_ts(from._internal_ts());
-  }
-  if (from._internal_tick() != 0) {
-    _internal_set_tick(from._internal_tick());
-  }
   if (from._internal_length() != 0) {
     _internal_set_length(from._internal_length());
+  }
+  switch (from.ts_timeout_case()) {
+    case kTs: {
+      _internal_set_ts(from._internal_ts());
+      break;
+    }
+    case kTimeout: {
+      _internal_set_timeout(from._internal_timeout());
+      break;
+    }
+    case TS_TIMEOUT_NOT_SET: {
+      break;
+    }
+  }
+  switch (from.tick_cmd_case()) {
+    case kTick: {
+      _internal_set_tick(from._internal_tick());
+      break;
+    }
+    case kCommand: {
+      _internal_set_command(from._internal_command());
+      break;
+    }
+    case TICK_CMD_NOT_SET: {
+      break;
+    }
   }
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -384,12 +525,11 @@ void SPIMessage::InternalSwap(SPIMessage* other) {
       &load_, GetArenaForAllocation(),
       &other->load_, other->GetArenaForAllocation()
   );
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SPIMessage, length_)
-      + sizeof(SPIMessage::length_)
-      - PROTOBUF_FIELD_OFFSET(SPIMessage, ts_)>(
-          reinterpret_cast<char*>(&ts_),
-          reinterpret_cast<char*>(&other->ts_));
+  swap(length_, other->length_);
+  swap(ts_timeout_, other->ts_timeout_);
+  swap(tick_cmd_, other->tick_cmd_);
+  swap(_oneof_case_[0], other->_oneof_case_[0]);
+  swap(_oneof_case_[1], other->_oneof_case_[1]);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata SPIMessage::GetMetadata() const {

@@ -45,12 +45,10 @@ void spi_command_loop(SPI &spi)
 {
     while (not terminate)
     {
-        SPICommandPtr cmd_ptr = std::make_shared<SPICommand>();
-        cmd_ptr->action = 1;
-        cmd_ptr->params.resize(4);
-        *reinterpret_cast<uint32_t *>(cmd_ptr->params.data()) = 150;
+        std::vector<uint8_t> params(4);
+        *reinterpret_cast<uint32_t *>(params.data()) = 150;
         auto n = std::chrono::steady_clock::now();
-        auto res = spi.command(cmd_ptr, 1000);
+        auto res = spi.command(1, params, 1000);
         auto elapse = std::chrono::steady_clock::now() - n;
         std::cout << "delay: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapse).count() << std::endl;
         if (res)

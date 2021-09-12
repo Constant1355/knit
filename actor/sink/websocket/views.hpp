@@ -23,12 +23,12 @@ namespace knit
             {
                 using source::stm32::SPIMessagePtr;
                 using websocketpp::connection_hdl;
-                // using websocketpp::lib::bind;
-                // using websocketpp::lib::ref;
-                // using websocketpp::lib::placeholders::_1;
-                // using websocketpp::lib::placeholders::_2;
 
                 using server = websocketpp::server<websocketpp::config::asio>;
+                using CommandFunctor = std::function<std::optional<std::vector<uint8_t>>(
+                    const uint32_t &action,
+                    const std::vector<uint8_t> &params,
+                    const uint32_t &timeout_milliseconds)>;
 
                 struct ViewParams
                 {
@@ -43,6 +43,7 @@ namespace knit
 
                     virtual void receive_loop(Tube<SPIMessagePtr> &in) override;
                     virtual void receive(Tube<SPIMessagePtr> &in) override;
+                    void regist_command_functor(CommandFunctor cf);
 
                 private:
                     void run_();
@@ -52,6 +53,7 @@ namespace knit
                     void on_message(connection_hdl hdl, server::message_ptr msg);
 
                     ViewParams params_;
+                    CommandFunctor command_functor_;
                     server server_;
                     std::thread ws_run_th_;
                     std::mutex mtx_;

@@ -104,6 +104,18 @@ class SPIMessage final :
   static const SPIMessage& default_instance() {
     return *internal_default_instance();
   }
+  enum TsTimeoutCase {
+    kTs = 2,
+    kTimeout = 7,
+    TS_TIMEOUT_NOT_SET = 0,
+  };
+
+  enum TickCmdCase {
+    kTick = 3,
+    kCommand = 6,
+    TICK_CMD_NOT_SET = 0,
+  };
+
   static inline const SPIMessage* internal_default_instance() {
     return reinterpret_cast<const SPIMessage*>(
                &_SPIMessage_default_instance_);
@@ -182,9 +194,11 @@ class SPIMessage final :
   enum : int {
     kNameFieldNumber = 1,
     kLoadFieldNumber = 5,
-    kTsFieldNumber = 2,
-    kTickFieldNumber = 3,
     kLengthFieldNumber = 4,
+    kTsFieldNumber = 2,
+    kTimeoutFieldNumber = 7,
+    kTickFieldNumber = 3,
+    kCommandFieldNumber = 6,
   };
   // string name = 1;
   void clear_name();
@@ -214,24 +228,6 @@ class SPIMessage final :
   std::string* _internal_mutable_load();
   public:
 
-  // double ts = 2;
-  void clear_ts();
-  double ts() const;
-  void set_ts(double value);
-  private:
-  double _internal_ts() const;
-  void _internal_set_ts(double value);
-  public:
-
-  // uint32 tick = 3;
-  void clear_tick();
-  ::PROTOBUF_NAMESPACE_ID::uint32 tick() const;
-  void set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_tick() const;
-  void _internal_set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
   // uint32 length = 4;
   void clear_length();
   ::PROTOBUF_NAMESPACE_ID::uint32 length() const;
@@ -241,19 +237,97 @@ class SPIMessage final :
   void _internal_set_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
+  // double ts = 2;
+  bool has_ts() const;
+  private:
+  bool _internal_has_ts() const;
+  public:
+  void clear_ts();
+  double ts() const;
+  void set_ts(double value);
+  private:
+  double _internal_ts() const;
+  void _internal_set_ts(double value);
+  public:
+
+  // double timeout = 7;
+  bool has_timeout() const;
+  private:
+  bool _internal_has_timeout() const;
+  public:
+  void clear_timeout();
+  double timeout() const;
+  void set_timeout(double value);
+  private:
+  double _internal_timeout() const;
+  void _internal_set_timeout(double value);
+  public:
+
+  // uint32 tick = 3;
+  bool has_tick() const;
+  private:
+  bool _internal_has_tick() const;
+  public:
+  void clear_tick();
+  ::PROTOBUF_NAMESPACE_ID::uint32 tick() const;
+  void set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_tick() const;
+  void _internal_set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 command = 6;
+  bool has_command() const;
+  private:
+  bool _internal_has_command() const;
+  public:
+  void clear_command();
+  ::PROTOBUF_NAMESPACE_ID::uint32 command() const;
+  void set_command(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_command() const;
+  void _internal_set_command(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  void clear_ts_timeout();
+  TsTimeoutCase ts_timeout_case() const;
+  void clear_tick_cmd();
+  TickCmdCase tick_cmd_case() const;
   // @@protoc_insertion_point(class_scope:stm32.SPIMessage)
  private:
   class _Internal;
+  void set_has_ts();
+  void set_has_timeout();
+  void set_has_tick();
+  void set_has_command();
+
+  inline bool has_ts_timeout() const;
+  inline void clear_has_ts_timeout();
+
+  inline bool has_tick_cmd() const;
+  inline void clear_has_tick_cmd();
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr load_;
-  double ts_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 tick_;
   ::PROTOBUF_NAMESPACE_ID::uint32 length_;
+  union TsTimeoutUnion {
+    constexpr TsTimeoutUnion() : _constinit_{} {}
+      ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+    double ts_;
+    double timeout_;
+  } ts_timeout_;
+  union TickCmdUnion {
+    constexpr TickCmdUnion() : _constinit_{} {}
+      ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+    ::PROTOBUF_NAMESPACE_ID::uint32 tick_;
+    ::PROTOBUF_NAMESPACE_ID::uint32 command_;
+  } tick_cmd_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 _oneof_case_[2];
+
   friend struct ::TableStruct_spi_5fmessage_2eproto;
 };
 // ===================================================================
@@ -314,43 +388,155 @@ inline void SPIMessage::set_allocated_name(std::string* name) {
 }
 
 // double ts = 2;
+inline bool SPIMessage::_internal_has_ts() const {
+  return ts_timeout_case() == kTs;
+}
+inline bool SPIMessage::has_ts() const {
+  return _internal_has_ts();
+}
+inline void SPIMessage::set_has_ts() {
+  _oneof_case_[0] = kTs;
+}
 inline void SPIMessage::clear_ts() {
-  ts_ = 0;
+  if (_internal_has_ts()) {
+    ts_timeout_.ts_ = 0;
+    clear_has_ts_timeout();
+  }
 }
 inline double SPIMessage::_internal_ts() const {
-  return ts_;
+  if (_internal_has_ts()) {
+    return ts_timeout_.ts_;
+  }
+  return 0;
+}
+inline void SPIMessage::_internal_set_ts(double value) {
+  if (!_internal_has_ts()) {
+    clear_ts_timeout();
+    set_has_ts();
+  }
+  ts_timeout_.ts_ = value;
 }
 inline double SPIMessage::ts() const {
   // @@protoc_insertion_point(field_get:stm32.SPIMessage.ts)
   return _internal_ts();
-}
-inline void SPIMessage::_internal_set_ts(double value) {
-  
-  ts_ = value;
 }
 inline void SPIMessage::set_ts(double value) {
   _internal_set_ts(value);
   // @@protoc_insertion_point(field_set:stm32.SPIMessage.ts)
 }
 
+// double timeout = 7;
+inline bool SPIMessage::_internal_has_timeout() const {
+  return ts_timeout_case() == kTimeout;
+}
+inline bool SPIMessage::has_timeout() const {
+  return _internal_has_timeout();
+}
+inline void SPIMessage::set_has_timeout() {
+  _oneof_case_[0] = kTimeout;
+}
+inline void SPIMessage::clear_timeout() {
+  if (_internal_has_timeout()) {
+    ts_timeout_.timeout_ = 0;
+    clear_has_ts_timeout();
+  }
+}
+inline double SPIMessage::_internal_timeout() const {
+  if (_internal_has_timeout()) {
+    return ts_timeout_.timeout_;
+  }
+  return 0;
+}
+inline void SPIMessage::_internal_set_timeout(double value) {
+  if (!_internal_has_timeout()) {
+    clear_ts_timeout();
+    set_has_timeout();
+  }
+  ts_timeout_.timeout_ = value;
+}
+inline double SPIMessage::timeout() const {
+  // @@protoc_insertion_point(field_get:stm32.SPIMessage.timeout)
+  return _internal_timeout();
+}
+inline void SPIMessage::set_timeout(double value) {
+  _internal_set_timeout(value);
+  // @@protoc_insertion_point(field_set:stm32.SPIMessage.timeout)
+}
+
 // uint32 tick = 3;
+inline bool SPIMessage::_internal_has_tick() const {
+  return tick_cmd_case() == kTick;
+}
+inline bool SPIMessage::has_tick() const {
+  return _internal_has_tick();
+}
+inline void SPIMessage::set_has_tick() {
+  _oneof_case_[1] = kTick;
+}
 inline void SPIMessage::clear_tick() {
-  tick_ = 0u;
+  if (_internal_has_tick()) {
+    tick_cmd_.tick_ = 0u;
+    clear_has_tick_cmd();
+  }
 }
 inline ::PROTOBUF_NAMESPACE_ID::uint32 SPIMessage::_internal_tick() const {
-  return tick_;
+  if (_internal_has_tick()) {
+    return tick_cmd_.tick_;
+  }
+  return 0u;
+}
+inline void SPIMessage::_internal_set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  if (!_internal_has_tick()) {
+    clear_tick_cmd();
+    set_has_tick();
+  }
+  tick_cmd_.tick_ = value;
 }
 inline ::PROTOBUF_NAMESPACE_ID::uint32 SPIMessage::tick() const {
   // @@protoc_insertion_point(field_get:stm32.SPIMessage.tick)
   return _internal_tick();
 }
-inline void SPIMessage::_internal_set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  
-  tick_ = value;
-}
 inline void SPIMessage::set_tick(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   _internal_set_tick(value);
   // @@protoc_insertion_point(field_set:stm32.SPIMessage.tick)
+}
+
+// uint32 command = 6;
+inline bool SPIMessage::_internal_has_command() const {
+  return tick_cmd_case() == kCommand;
+}
+inline bool SPIMessage::has_command() const {
+  return _internal_has_command();
+}
+inline void SPIMessage::set_has_command() {
+  _oneof_case_[1] = kCommand;
+}
+inline void SPIMessage::clear_command() {
+  if (_internal_has_command()) {
+    tick_cmd_.command_ = 0u;
+    clear_has_tick_cmd();
+  }
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 SPIMessage::_internal_command() const {
+  if (_internal_has_command()) {
+    return tick_cmd_.command_;
+  }
+  return 0u;
+}
+inline void SPIMessage::_internal_set_command(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  if (!_internal_has_command()) {
+    clear_tick_cmd();
+    set_has_command();
+  }
+  tick_cmd_.command_ = value;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 SPIMessage::command() const {
+  // @@protoc_insertion_point(field_get:stm32.SPIMessage.command)
+  return _internal_command();
+}
+inline void SPIMessage::set_command(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_command(value);
+  // @@protoc_insertion_point(field_set:stm32.SPIMessage.command)
 }
 
 // uint32 length = 4;
@@ -419,6 +605,24 @@ inline void SPIMessage::set_allocated_load(std::string* load) {
   // @@protoc_insertion_point(field_set_allocated:stm32.SPIMessage.load)
 }
 
+inline bool SPIMessage::has_ts_timeout() const {
+  return ts_timeout_case() != TS_TIMEOUT_NOT_SET;
+}
+inline void SPIMessage::clear_has_ts_timeout() {
+  _oneof_case_[0] = TS_TIMEOUT_NOT_SET;
+}
+inline bool SPIMessage::has_tick_cmd() const {
+  return tick_cmd_case() != TICK_CMD_NOT_SET;
+}
+inline void SPIMessage::clear_has_tick_cmd() {
+  _oneof_case_[1] = TICK_CMD_NOT_SET;
+}
+inline SPIMessage::TsTimeoutCase SPIMessage::ts_timeout_case() const {
+  return SPIMessage::TsTimeoutCase(_oneof_case_[0]);
+}
+inline SPIMessage::TickCmdCase SPIMessage::tick_cmd_case() const {
+  return SPIMessage::TickCmdCase(_oneof_case_[1]);
+}
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__

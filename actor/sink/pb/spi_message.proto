@@ -4,8 +4,14 @@ package stm32;
 
 message SPIMessage {
     string name = 1;
-    double ts = 2;
-    uint32 tick = 3;
+    oneof ts_timeout{
+        double ts = 2;
+        double timeout = 7;
+        }
+    oneof tick_cmd{
+        uint32 tick = 3;
+        uint32 command = 6;
+        }
     uint32 length = 4;
     bytes load = 5;
 }

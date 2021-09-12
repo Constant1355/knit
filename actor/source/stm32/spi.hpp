@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <future>
+#include <list>
 #include <map>
 #include <set>
 #include <mutex>
@@ -66,7 +67,10 @@ namespace knit
                 struct SPICommand
                 {
                     uint32_t action;
+                    uint32_t sequence;
                     std::vector<uint8_t> params;
+                    std::promise<std::vector<uint8_t>> promise_response;
+                    bool status_wait;
                 };
                 using SPICommandPtr = std::shared_ptr<SPICommand>;
 
@@ -83,7 +87,11 @@ namespace knit
                     SPI(const SPIParmas &params);
                     ~SPI();
                     virtual void send(std::vector<MarkedTube> &out) override;
-                    std::optional<std::vector<uint8_t>> command(const SPICommandPtr &cmd, const uint32_t &timeout_milliseconds = 1000);
+
+                    std::optional<std::vector<uint8_t>> command(
+                        const uint32_t &action,
+                        const std::vector<uint8_t> &params,
+                        const uint32_t &timeout_milliseconds = 1000);
                     void emplace_tube(const std::vector<SensorName> &sensors, std::vector<MarkedTube> &tubes) const;
 
                 private:
@@ -100,11 +108,10 @@ namespace knit
                     const uint32_t single_load_length_;
 
                     Tube<SPIMessagePtr> rx_buffer_;
-                    std::mutex tx_buffer_mtx_;
-                    std::queue<std::pair<uint32_t, SPICommandPtr>> tx_buffer_;
+                    std::mutex cmds_mtx_;
+                    std::list<SPICommandPtr> cmds_;
                     std::vector<uint8_t> tx_, rx_;
                     std::thread rx_loop_th_;
-                    std::map<uint32_t, std::promise<std::vector<uint8_t>>> cmd_response_;
                 };
             }
         }

@@ -24,11 +24,13 @@ int main()
     view_params.dump_sensors.push_back(SensorName::MPU9250_MAG);
     view_params.dump_sensors.push_back(SensorName::Battery_VC);
     view_params.dump_sensors.push_back(SensorName::Heds);
+    view_params.dump_sensors.push_back(SensorName::CommandResponse);
 
     std::vector<SPI::MarkedTube> tubes;
     spi.emplace_tube(view_params.dump_sensors, tubes);
 
     View view(view_params);
+    view.regist_command_functor(std::bind(&SPI::command, &spi, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     auto loop_th = std::thread(&SPI::send_loop, &spi, std::ref(tubes));
     auto serve_th = std::thread(&View::receive_loop, &view, std::ref(*tubes[0].second));
     serve_th.join();

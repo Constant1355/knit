@@ -11,7 +11,7 @@ namespace knit
         {
             namespace websocket
             {
-                View::View(const ViewParams &params) : params_(params)
+                View::View(const ViewParams &params) : params_(params), command_functor_(nullptr)
                 {
                     ws_run_th_ = std::thread(&View::run_, this);
                 }
@@ -21,6 +21,7 @@ namespace knit
                     std::lock_guard<std::mutex> lg(mtx_);
                     for (auto it = cnt_table_.begin(); it != cnt_table_.end(); ++it)
                     {
+                        // server_.get_con_from_hdl(it->first)->close(websocket::)
                         server_.close(it->first, websocketpp::close::status::going_away, "View deconstruct", ec);
                         if (ec)
                         {
@@ -86,7 +87,8 @@ namespace knit
                         {
                             std::cout << "close timeout connection" << std::endl;
                             websocketpp::lib::error_code ec;
-                            server_.close(it->first, websocketpp::close::status::going_away, "client timeout", ec);
+                            auto status_code = websocketpp::close::status::normal;
+                            server_.close(it->first, status_code, "heartbeat absent", ec);
                             if (ec)
                             {
                                 std::cout << "> Error closing connection " << ec.message() << std::endl;
@@ -97,6 +99,11 @@ namespace knit
                         server_.send(it->first, out, websocketpp::frame::opcode::value::binary);
                         ++it;
                     }
+                }
+
+                void View::regist_command_functor(CommandFunctor cf)
+                {
+                    command_functor_ = cf;
                 }
 
                 void View::run_()
@@ -160,12 +167,41 @@ namespace knit
                 }
                 void View::on_message(connection_hdl hdl, server::message_ptr msg)
                 {
-                    std::cout << "on message: " << msg->get_payload() << std::endl;
+                    auto payload = msg->get_payload();
+                    std::cout << "on message: " << payload << std::endl;
                     std::lock_guard<std::mutex> lg(mtx_);
                     auto res = cnt_table_.find(hdl);
                     if (res != cnt_table_.end())
                     {
                         res->second = std::chrono::steady_clock::now();
+                    }
+
+                    stm32::SPIMessage spi_msg;
+                    if (not spi_msg.ParseFromString(payload))
+                    {
+                        return;
+                    }
+                    if (command_functor_ != nullptr and
+                        spi_msg.name() == "CommandRequest" and
+                        spi_msg.has_command() and
+                        spi_msg.has_timeout())
+                    {
+                        std::cout << "take command" << std::endl;
+                        auto params = spi_msg.load();
+                        std::cout << "params: " << *(uint32_t *)(params.data());
+                        auto res = command_functor_(spi_msg.command(), {params.begin(), params.end()}, static_cast<uint32_t>(spi_msg.timeout() * 1000));
+                        if (not res)
+                        {
+                            return;
+                        }
+                        spi_msg.set_name("CommandResponse");
+                        spi_msg.set_tick(0);
+                        spi_msg.set_length(res->size());
+                        spi_msg.set_load(std::string(res->begin(), res->end()));
+                        std::string out;
+                        spi_msg.SerializeToString(&out);
+                        server_.send(hdl, out, websocketpp::frame::opcode::value::binary);
+                        std::cout << "return command to ws" << std::endl;
                     }
                 }
             }
